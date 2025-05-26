@@ -1,0 +1,285 @@
+//index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Community Events - Interactive Event Handling</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #d0e6ff 0%, #93c6ff 100%);
+    color: #003366;
+    padding: 20px;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  h1 {
+    margin: 0 0 6px 0;
+    font-weight: 700;
+  }
+  #controls {
+    max-width: 900px;
+    margin: 0 auto 30px auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #categoryFilter, #searchInput {
+    padding: 10px 14px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 2px solid #003366;
+    width: 48%;
+    max-width: 300px;
+  }
+  #categoryFilter {
+    max-width: 48%;
+  }
+  #searchInput {
+    max-width: 48%;
+  }
+  #event-list {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+    gap: 20px;
+  }
+  .event-card {
+    background: white;
+    padding: 18px 22px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .event-card h2 {
+    margin: 0 0 12px 0;
+    color: #00509e;
+  }
+  .event-info {
+    margin-bottom: 14px;
+    font-style: italic;
+    color: #004080;
+  }
+  .event-desc {
+    flex-grow: 1;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  button {
+    background-color: #00509e;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.25s ease;
+  }
+  button:hover:not(:disabled) {
+    background-color: #003d66;
+  }
+  button:disabled {
+    background-color: #96b9d9;
+    cursor: not-allowed;
+  }
+  footer {
+    margin-top: auto;
+    text-align: center;
+    font-size: 0.9em;
+    color: #003366;
+    padding: 12px 0;
+  }
+  @media(max-width: 600px) {
+    #controls {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    #categoryFilter, #searchInput {
+      max-width: 100%;
+      width: 100%;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Community Events Portal</h1>
+  <p>Register, filter, or search your events</p>
+</header>
+
+<section id="controls">
+  <select id="categoryFilter" aria-label="Filter events by category">
+    <option value="">All Categories</option>
+  </select>
+  <input type="text" id="searchInput" placeholder="Quick search events by name" aria-label="Search events by name" />
+</section>
+
+<main>
+  <section id="event-list" aria-live="polite" aria-label="List of community events">
+    <!-- Events created dynamically here -->
+  </section>
+</main>
+
+<footer>
+  &copy; 2023 Community Portal
+</footer>
+
+<script src="dom-events.js"></script>
+</body>
+</html>
+
+//main.js
+const events = [
+  {
+    id: 1,
+    title: "Community Jazz Festival",
+    date: "2023-11-25",
+    location: "Town Hall",
+    category: "Music",
+    description: "Experience live jazz music performances from local bands.",
+    totalSeats: 100,
+    availableSeats: 30,
+  },
+  {
+    id: 2,
+    title: "Outdoor Yoga Session",
+    date: "2023-12-05",
+    location: "City Park",
+    category: "Wellness",
+    description: "Relax and rejuvenate in this group yoga session.",
+    totalSeats: 40,
+    availableSeats: 5,
+  },
+  {
+    id: 3,
+    title: "Tech Workshop",
+    date: "2023-11-30",
+    location: "Community Center",
+    category: "Education",
+    description: "Learn basic coding and tech skills in this interactive workshop.",
+    totalSeats: 60,
+    availableSeats: 0,
+  },
+  {
+    id: 4,
+    title: "Rock Concert",
+    date: "2023-12-10",
+    location: "Amphitheater",
+    category: "Music",
+    description: "Rock the night away with some classic rock bands.",
+    totalSeats: 150,
+    availableSeats: 50,
+  }
+];
+
+const eventListEl = document.querySelector("#event-list");
+const categoryFilterEl = document.querySelector("#categoryFilter");
+const searchInputEl = document.querySelector("#searchInput");
+
+let filteredEvents = [...events]; // start with all events
+
+// Format date helper
+function formatDate(dateStr) {
+  const options = { year: "numeric", month: "long", day: "numeric" };
+  return new Date(dateStr).toLocaleDateString(undefined, options);
+}
+
+// Render event cards
+function renderEvents(eventsToRender) {
+  eventListEl.innerHTML = "";
+  if (eventsToRender.length === 0) {
+    const noEvents = document.createElement("p");
+    noEvents.textContent = "No events found matching your criteria.";
+    eventListEl.appendChild(noEvents);
+    return;
+  }
+  eventsToRender.forEach(event => {
+    const card = document.createElement("article");
+    card.className = "event-card";
+    card.tabIndex = 0;
+    card.setAttribute("aria-label", `${event.title}, on ${formatDate(event.date)}, at ${event.location}, category ${event.category}`);
+
+    const title = document.createElement("h2");
+    title.textContent = event.title;
+
+    const info = document.createElement("p");
+    info.className = "event-info";
+    info.textContent = `${formatDate(event.date)} | ${event.location} | Category: ${event.category}`;
+
+    const desc = document.createElement("p");
+    desc.className = "event-desc";
+    desc.textContent = event.description;
+
+    const seats = document.createElement("p");
+    seats.textContent = `Seats Available: ${event.availableSeats} / ${event.totalSeats}`;
+
+    const registerBtn = document.createElement("button");
+    registerBtn.textContent = "Register";
+    registerBtn.disabled = event.availableSeats === 0;
+    registerBtn.setAttribute("aria-disabled", String(registerBtn.disabled));
+    registerBtn.onclick = () => {
+      if (event.availableSeats > 0) {
+        event.availableSeats--;
+        applyFiltersAndRender();
+        alert(`Registered for "${event.title}". Remaining seats: ${event.availableSeats}`);
+      }
+    };
+
+    card.append(title, info, desc, seats, registerBtn);
+    eventListEl.appendChild(card);
+  });
+}
+
+// Populate category filter options dynamically
+function populateCategoryFilter() {
+  const categories = [...new Set(events.map(e => e.category).filter(Boolean))];
+  categories.sort();
+  categories.forEach(cat => {
+    const option = document.createElement("option");
+    option.value = cat;
+    option.textContent = cat;
+    categoryFilterEl.appendChild(option);
+  });
+}
+
+// Filter events based on category and search term then render
+function applyFiltersAndRender() {
+  const selectedCategory = categoryFilterEl.value.toLowerCase();
+  const searchTerm = searchInputEl.value.trim().toLowerCase();
+
+  filteredEvents = events.filter(event => {
+    const matchesCategory = selectedCategory === "" || event.category.toLowerCase() === selectedCategory;
+    const matchesSearch = event.title.toLowerCase().includes(searchTerm);
+    return matchesCategory && matchesSearch;
+  });
+
+  renderEvents(filteredEvents);
+}
+
+// Events attached to filter and search inputs
+categoryFilterEl.onchange = applyFiltersAndRender;
+searchInputEl.onkeydown = (e) => {
+  // Perform filter on any keydown except special keys (like arrow keys, etc)
+  // We throttle updates for better UX - so use setTimeout with slight delay
+  clearTimeout(searchInputEl.filterTimeout);
+  searchInputEl.filterTimeout = setTimeout(() => {
+    applyFiltersAndRender();
+  }, 200);
+};
+
+// Initialize app
+populateCategoryFilter();
+renderEvents(events);
