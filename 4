@@ -1,0 +1,576 @@
+//index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Local Community Event Portal</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+            color: #333;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        header {
+            background-color: #2c7a7b;
+            color: white;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            flex-grow: 1;
+        }
+        h1,h2 {
+            margin: 0 0 0.5rem;
+        }
+        #event-list p {
+            font-style: italic;
+            color: #eee;
+            background-color: rgba(255 255 255 / 0.2);
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .event {
+            background-color: white;
+            padding: 18px 22px;
+            margin-bottom: 18px;
+            border-radius: 10px;
+            box-shadow: 0 7px 20px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+        .event:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.25);
+        }
+        .event h3 {
+            color: #2c7a7b;
+            margin-bottom: 8px;
+        }
+        .event p {
+            margin: 6px 0;
+        }
+        button {
+            background-color: #2c7a7b;
+            color: white;
+            border: none;
+            padding: 11px 26px;
+            text-align: center;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.25s ease;
+            margin-top: 12px;
+        }
+        button:hover:not(:disabled) {
+            background-color: #285e61;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .error {
+            color: #c53030;
+            font-weight: 700;
+            padding: 10px;
+            background-color: #ffe5e5;
+            border-radius: 6px;
+            margin-bottom: 15px;
+        }
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding: 18px 8px;
+            background-color: #204d4d;
+            color: #d4f1f4;
+            border-radius: 10px;
+            box-shadow: 0 -5px 10px rgba(0,0,0,0.1);
+        }
+        /* Filter section styling */
+        #filter-section {
+            margin: 25px 0 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 7px 25px rgba(0,0,0,0.05);
+            padding: 16px 22px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        #filter-section label {
+            font-weight: 600;
+            color: #204d4d;
+            margin-right: 8px;
+        }
+        #categorySelect {
+            padding: 8px 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1.5px solid #204d4d;
+            min-width: 160px;
+            cursor: pointer;
+            transition: border-color 0.25s ease;
+        }
+        #categorySelect:hover, #categorySelect:focus {
+            border-color: #2c7a7b;
+            outline: none;
+        }
+        #resetFilterBtn {
+            background-color: #204d4d;
+            padding: 9px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.25s ease;
+        }
+        #resetFilterBtn:hover {
+            background-color: #2c7a7b;
+        }
+        /* Responsive */
+        @media (max-width: 600px) {
+            button {
+                width: 100%;
+            }
+            #filter-section {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            #categorySelect, #resetFilterBtn {
+                width: 100%;
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Welcome to Our Community Portal</h1>
+            <p>Discover and register for upcoming local events</p>
+        </header>
+        
+        <section id="filter-section" aria-label="Filter Events">
+            <label for="categorySelect">Filter by Category:</label>
+            <select id="categorySelect" aria-controls="event-list">
+                <option value="">-- All Categories --</option>
+                <!-- Dynamic options will be added here -->
+            </select>
+            <button id="resetFilterBtn" title="Reset filter to show all events">Reset Filter</button>
+        </section>
+
+        <main>
+            <section id="events" aria-live="polite" aria-relevant="additions removals">
+                <h2>Upcoming Events with Available Seats</h2>
+                <div id="event-list" role="region" aria-label="List of upcoming events">
+                    <p>Loading events...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <footer>
+        <p>&copy; 2023 Local Community Portal. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Basic welcome message to console
+        console.log("Welcome to the Community Portal");
+
+        // Current date for event filtering
+        const currentDate = new Date();
+        currentDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
+        // Closure to track total registrations for each category
+        function createCategoryTracker() {
+            const categoryCounts = {};
+            return function(category) {
+                if (!categoryCounts[category]) {
+                    categoryCounts[category] = 0;
+                }
+                categoryCounts[category]++;
+                return categoryCounts[category];
+            };
+        }
+        const trackCategoryRegistration = createCategoryTracker();
+
+        // Hold all events in a variable (simulate persistent state)
+        let allEvents = [];
+
+        // Alert when page is fully loaded
+        window.addEventListener('DOMContentLoaded', function() {
+            try {
+                alert("The Community Portal has finished loading! Welcome!");
+                initializePortal();
+                setupFilterControls();
+            } catch (error) {
+                console.error("Initialization error:", error);
+                alert("There was a problem loading the portal. Please try again later.");
+            }
+        });
+
+        // Portal initialization function
+        function initializePortal() {
+            // Sample events data
+            allEvents = [
+                {
+                    id: 1,
+                    title: "Community Clean-Up Day",
+                    date: "2023-11-15",
+                    location: "Central Park",
+                    category: "Environment",
+                    description: "Join us for a day of cleaning up our community park!",
+                    totalSeats: 50,
+                    availableSeats: 50
+                },
+                {
+                    id: 2,
+                    title: "Local Farmers Market",
+                    date: "2023-11-18",
+                    location: "Main Street",
+                    category: "Food",
+                    description: "Fresh produce from local farmers every Saturday morning.",
+                    totalSeats: 200,
+                    availableSeats: 0 // Sold out event
+                },
+                {
+                    id: 3,
+                    title: "Book Club Meeting",
+                    date: "2023-10-20", // Past event
+                    location: "Community Library",
+                    category: "Education",
+                    description: "This month we're discussing 'The Great Gatsby'.",
+                    totalSeats: 30,
+                    availableSeats: 5
+                },
+                {
+                    id: 4,
+                    title: "Winter Festival",
+                    date: "2023-12-10",
+                    location: "Town Square",
+                    category: "Festival",
+                    description: "Annual winter celebration with music and food.",
+                    totalSeats: 300,
+                    availableSeats: 150
+                }
+            ];
+            displayValidEvents(allEvents);
+            populateCategoryFilter(allEvents);
+        }
+
+        // Function to filter and display valid events
+        function displayValidEvents(events) {
+            try {
+                const eventList = document.getElementById('event-list');
+                eventList.innerHTML = '<p>Loading upcoming events...</p>';
+
+                // Filter out past events and events with no seats
+                const validEvents = events.filter(event => {
+                    const eventDate = new Date(event.date);
+                    eventDate.setHours(0, 0, 0, 0);
+                    return eventDate >= currentDate && event.availableSeats > 0;
+                });
+
+                if (validEvents.length === 0) {
+                    eventList.innerHTML = '<p>No upcoming events with available seats found.</p>';
+                    return;
+                }
+
+                // Clear loading message
+                eventList.innerHTML = '';
+                
+                // Use forEach to loop through valid events
+                validEvents.forEach(event => {
+                    displayEvent(event);
+                });
+
+            } catch (error) {
+                console.error("Error displaying events:", error);
+                const eventList = document.getElementById('event-list');
+                eventList.innerHTML = 
+                    '<p class="error">Error loading events. Please refresh the page.</p>';
+            }
+        }
+
+        // Function to display a single event
+        function displayEvent(event) {
+            const eventList = document.getElementById('event-list');
+            
+            const eventElement = document.createElement('div');
+            eventElement.className = 'event';
+            eventElement.setAttribute('tabindex', '0');
+            eventElement.setAttribute('aria-label', `${event.title}, scheduled on ${formatDate(event.date)} at ${event.location}. Category: ${event.category}. ${event.description}. Seats available: ${event.availableSeats} out of ${event.totalSeats}`);
+
+            // Using template literals for event information
+            eventElement.innerHTML = `
+                <h3>${event.title}</h3>
+                <p><strong>Date:</strong> ${formatDate(event.date)}</p>
+                <p><strong>Location:</strong> ${event.location}</p>
+                <p><strong>Category:</strong> ${event.category}</p>
+                <p>${event.description}</p>
+                <p><strong>Seats Available:</strong> ${event.availableSeats}/${event.totalSeats}</p>
+            `;
+            
+            const registerBtn = document.createElement('button');
+            registerBtn.textContent = 'Register';
+            registerBtn.disabled = event.availableSeats <= 0;
+            registerBtn.onclick = () => handleRegistration(event);
+            registerBtn.setAttribute('aria-disabled', registerBtn.disabled.toString());
+            registerBtn.setAttribute('aria-label', `Register for ${event.title}`);
+            eventElement.appendChild(registerBtn);
+            
+            eventList.appendChild(eventElement);
+        }
+
+        // Function to handle event registration with error handling
+        function handleRegistration(event) {
+            try {
+                // Validate event data
+                if (!event || !event.id || event.availableSeats === undefined) {
+                    throw new Error("Invalid event data");
+                }
+
+                if (event.availableSeats <= 0) {
+                    alert("Sorry, this event is fully booked!");
+                    return;
+                }
+
+                // Decrement available seats
+                event.availableSeats--;
+
+                // Track registration for the event's category
+                const totalRegistrations = trackCategoryRegistration(event.category);
+
+                // Show success message
+                alert(`Successfully registered for ${event.title}!
+                \nDate: ${formatDate(event.date)}
+                \nLocation: ${event.location}
+                \nRemaining Seats: ${event.availableSeats}
+                \nTotal Registrations in ${event.category}: ${totalRegistrations}`);
+                
+                // Refresh the events display using global allEvents array
+                displayValidEvents(allEvents);
+
+            } catch (error) {
+                console.error("Registration error:", error);
+                alert("There was a problem with your registration. Please try again.");
+            }
+        }
+
+        // Function to format date strings
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'long', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(undefined, options);
+        }
+
+        // addEvent() function to add a new event to allEvents and update display
+        function addEvent(newEvent) {
+            // Basic validation
+            if (!newEvent || !newEvent.id || !newEvent.title) {
+                console.error("Invalid event data for addEvent");
+                return;
+            }
+            allEvents.push(newEvent);
+            displayValidEvents(allEvents);
+            populateCategoryFilter(allEvents);
+            console.log("New event added:", newEvent);
+        }
+
+        // registerUser() function to simulate user registration for event by ID
+        function registerUser(eventId) {
+            const event = allEvents.find(e => e.id === eventId);
+            if (!event) {
+                alert("Event not found for registration");
+                return;
+            }
+            handleRegistration(event);
+            console.log(`User registered for event ID: ${eventId}`);
+        }
+
+        // filterEventsByCategory() function filters events by given category, executes callback with filtered array
+        function filterEventsByCategory(events, category, callback) {
+            if (!category) {
+                callback(events);
+                return;
+            }
+            const filteredEvents = events.filter(event => event.category === category);
+            callback(filteredEvents);
+        }
+
+        // Populate category filter dropdown dynamically from allEvents
+        function populateCategoryFilter(events) {
+            const categorySelect = document.getElementById('categorySelect');
+            const uniqueCategories = [...new Set(events.map(ev => ev.category).filter(Boolean))];
+            // Clear existing options except default
+            categorySelect.innerHTML = '<option value="">-- All Categories --</option>';
+            uniqueCategories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                option.textContent = cat;
+                categorySelect.appendChild(option);
+            });
+        }
+
+        // Setup filter controls event listeners
+        function setupFilterControls() {
+            const categorySelect = document.getElementById('categorySelect');
+            const resetBtn = document.getElementById('resetFilterBtn');
+
+            categorySelect.addEventListener('change', () => {
+                filterEventsByCategory(allEvents, categorySelect.value, filteredEvents => {
+                    displayValidEvents(filteredEvents);
+                });
+            });
+
+            resetBtn.addEventListener('click', () => {
+                categorySelect.value = '';
+                displayValidEvents(allEvents);
+            });
+        }
+    </script>
+</body>
+</html>
+
+//main.js
+// Basic welcome message to console
+console.log("Welcome to the Community Portal");
+
+// Current date for event filtering
+const currentDate = new Date();
+currentDate.setHours(0, 0, 0, 0); // Normalize to start of day
+
+// Closure to track total registrations for each category
+function createCategoryTracker() {
+    const categoryCounts = {};
+
+    return function(category) {
+        if (!categoryCounts[category]) {
+            categoryCounts[category] = 0;
+        }
+        categoryCounts[category]++;
+        return categoryCounts[category];
+    };
+}
+
+const trackCategoryRegistration = createCategoryTracker();
+
+// Alert when page is fully loaded
+window.addEventListener('DOMContentLoaded', function() {
+    try {
+        alert("The Community Portal has finished loading! Welcome!");
+        initializePortal();
+    } catch (error) {
+        console.error("Initialization error:", error);
+        alert("There was a problem loading the portal. Please try again later.");
+    }
+});
+
+// Portal initialization function
+function initializePortal() {
+    // Sample events data
+    const sampleEvents = [
+        // ... (same sample events as before)
+    ];
+
+    // Filter and display valid events
+    displayValidEvents(sampleEvents);
+}
+
+// Function to filter and display valid events
+function displayValidEvents(events) {
+    // ... (same as before)
+}
+
+// Function to display a single event
+function displayEvent(event) {
+    // ... (same as before)
+}
+
+// Function to handle event registration with error handling
+function handleRegistration(event) {
+    try {
+        // Validate event data
+        if (!event || !event.id || event.availableSeats === undefined) {
+            throw new Error("Invalid event data");
+        }
+
+        if (event.availableSeats <= 0) {
+            alert("Sorry, this event is fully booked!");
+            return;
+        }
+
+        // Decrement available seats
+        event.availableSeats--;
+
+        // Track registration for the event's category
+        const totalRegistrations = trackCategoryRegistration(event.category);
+
+        // Show success message
+        alert(`Successfully registered for ${event.title}!
+        \nDate: ${formatDate(event.date)}
+        \nLocation: ${event.location}
+        \nRemaining Seats: ${event.availableSeats}
+        \nTotal Registrations in ${event.category}: ${totalRegistrations}`);
+        
+        // Refresh the events display
+        const eventList = document.getElementById('event-list');
+        const events = Array.from(eventList.children).map(el => {
+            // In a real app, we would get this from a data store
+            return {
+                id: event.id,
+                title: event.title,
+                date: event.date,
+                location: event.location,
+                category: event.category,
+                description: event.description,
+                totalSeats: event.totalSeats,
+                availableSeats: event.availableSeats
+            };
+        });
+        
+        displayValidEvents(events);
+
+    } catch (error) {
+        console.error("Registration error:", error);
+        alert("There was a problem with your registration. Please try again.");
+    }
+}
+
+// Function to add a new event
+function addEvent(newEvent) {
+    // Here you would typically push the new event to a database or an array
+    // For demonstration, we will log it to the console
+    console.log("New event added:", newEvent);
+}
+
+// Function to register a user for an event
+function registerUser (eventId) {
+    // Logic to register a user for the event with the given ID
+    console.log(`User  registered for event ID: ${eventId}`);
+}
+
+// Function to filter events by category
+function filterEventsByCategory(events, category, callback) {
+    const filteredEvents = events.filter(event => event.category === category);
+    callback(filteredEvents);
+}
+
+// Helper function to format date
+function formatDate(dateString) {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateString).toLocaleDateString(undefined, options);
+}
