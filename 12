@@ -1,0 +1,402 @@
+//index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Listing with Registration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .event-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .event-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .event-card h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .event-info {
+            color: #7f8c8d;
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+        
+        .error-msg {
+            color: #e74c3c;
+            padding: 15px;
+            border: 1px solid #e74c3c;
+            border-radius: 4px;
+            background-color: #fadbd8;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Form styles */
+        .registration-form {
+            margin-top: 40px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background-color: #2980b9;
+        }
+        
+        .error {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        
+        .success-msg {
+            color: #27ae60;
+            padding: 15px;
+            border: 1px solid #27ae60;
+            border-radius: 4px;
+            background-color: #d5f5e3;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Upcoming Events</h1>
+    <div id="event-list"></div>
+    
+    <form id="registration-form" class="registration-form">
+        <h2>Event Registration</h2>
+        <div class="form-group">
+            <label for="name">Full Name</label>
+            <input type="text" id="name" name="name" required>
+            <div id="name-error" class="error"></div>
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" name="email" required>
+            <div id="email-error" class="error"></div>
+        </div>
+        <div class="form-group">
+            <label for="event">Select Event</label>
+            <select id="event" name="event" required>
+                <option value="">-- Please select an event --</option>
+                <!-- Events will be populated by JavaScript -->
+            </select>
+            <div id="event-error" class="error"></div>
+        </div>
+        <button type="submit">Register</button>
+        <div id="form-message"></div>
+    </form>
+    
+    <script src="script.js"></script>
+</body>
+</html>
+/* Add these styles to the existing CSS */
+.spinner.small {
+  width: 20px;
+  height: 20px;
+  border-width: 3px;
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+button[disabled] {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+.error-msg h3,
+.success-msg h3 {
+  margin-top: 0;
+}
+
+.error-msg p,
+.success-msg p {
+  margin-bottom: 5px;
+}
+
+.error-msg small,
+.success-msg small {
+  opacity: 0.8;
+  font-size: 0.9em;
+}
+
+//main.js
+const eventListEl = document.getElementById("event-list");
+const registrationForm = document.getElementById("registration-form");
+const formMessageEl = document.getElementById("form-message");
+const eventSelect = document.getElementById("event");
+
+// Show loading spinner
+const showLoading = () => {
+  eventListEl.innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
+};
+
+// Show error message
+const showError = (message = 'An error occurred') => {
+  eventListEl.innerHTML = `<p class="error-msg" role="alert">${message}</p>`;
+};
+
+// Format date helper
+const formatDate = (dateStr = '') => {
+  const options = { year: "numeric", month: "long", day: "numeric" };
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString(undefined, options);
+};
+
+// Render events dynamically
+const renderEvents = (events = []) => {
+  if (!Array.isArray(events) || events.length === 0) {
+    eventListEl.innerHTML = '<p>No events available.</p>';
+    return;
+  }
+  
+  eventListEl.innerHTML = '';
+  eventSelect.innerHTML = '<option value="">-- Please select an event --</option>';
+  
+  events.forEach(event => {
+    // Destructure event properties
+    const { title, date, location, category, description } = event;
+
+    // Create event card
+    const card = document.createElement('article');
+    card.className = 'event-card';
+    card.tabIndex = 0;
+    card.setAttribute('aria-label', `${title}, on ${formatDate(date)}, at ${location}, category ${category}`);
+
+    const titleEl = document.createElement('h2');
+    titleEl.textContent = title;
+
+    const info = document.createElement('p');
+    info.className = 'event-info';
+    info.textContent = `${formatDate(date)} | ${location} | Category: ${category}`;
+
+    const desc = document.createElement('p');
+    desc.className = 'event-desc';
+    desc.textContent = description || '';
+
+    card.append(titleEl, info, desc);
+    eventListEl.appendChild(card);
+    
+    // Add option to select dropdown
+    const option = document.createElement('option');
+    option.value = title;
+    option.textContent = `${title} (${formatDate(date)})`;
+    eventSelect.appendChild(option);
+  });
+};
+
+const MOCK_URL = 'https://jsonplaceholder.typicode.com/posts?_limit=5';
+const MOCK_API_URL = 'https://jsonplaceholder.typicode.com/posts'; // Mock API endpoint
+
+// Form validation
+const validateForm = (formData) => {
+  let isValid = true;
+  
+  // Clear previous errors
+  document.querySelectorAll('.error').forEach(el => el.textContent = '');
+  
+  // Name validation
+  if (!formData.name.trim()) {
+    document.getElementById('name-error').textContent = 'Name is required';
+    isValid = false;
+  }
+  
+  // Email validation
+  if (!formData.email.trim()) {
+    document.getElementById('email-error').textContent = 'Email is required';
+    isValid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    document.getElementById('email-error').textContent = 'Please enter a valid email';
+    isValid = false;
+  }
+  
+  // Event validation
+  if (!formData.event) {
+    document.getElementById('event-error').textContent = 'Please select an event';
+    isValid = false;
+  }
+  
+  return isValid;
+};
+
+// Show loading state for form submission
+const showFormLoading = (isLoading) => {
+  const submitBtn = registrationForm.querySelector('button[type="submit"]');
+  if (isLoading) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner small"></span> Registering...';
+  } else {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Register';
+  }
+};
+
+// Handle form submission with AJAX
+const handleFormSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Get form data
+  const formData = {
+    name: registrationForm.elements.name.value,
+    email: registrationForm.elements.email.value,
+    event: registrationForm.elements.event.value
+  };
+  
+  // Validate form
+  if (!validateForm(formData)) {
+    return;
+  }
+  
+  // Show loading state
+  showFormLoading(true);
+  formMessageEl.innerHTML = '';
+  
+  try {
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Send data to mock API
+    const response = await fetch(MOCK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        title: `Registration for ${formData.event}`,
+        body: `Attendee: ${formData.name}\nEmail: ${formData.email}`,
+        userId: 1,
+      }),
+    });
+    
+    if (!response.ok) {
+      throw new Error('Failed to submit registration');
+    }
+    
+    const data = await response.json();
+    
+    // Show success message
+    formMessageEl.innerHTML = `
+      <div class="success-msg" role="alert">
+        <h3>Registration Successful!</h3>
+        <p>Thank you, ${formData.name}!</p>
+        <p>You have successfully registered for "${formData.event}".</p>
+        <p>A confirmation has been sent to ${formData.email}.</p>
+        <p><small>Reference ID: ${data.id}</small></p>
+      </div>
+    `;
+    
+    // Reset form
+    registrationForm.reset();
+  } catch (error) {
+    console.error('Registration error:', error);
+    formMessageEl.innerHTML = `
+      <div class="error-msg" role="alert">
+        <h3>Registration Failed</h3>
+        <p>Sorry, we couldn't process your registration at this time.</p>
+        <p>Please try again later.</p>
+        <p><small>${error.message}</small></p>
+      </div>
+    `;
+  } finally {
+    // Hide loading state
+    showFormLoading(false);
+    // Scroll to message
+    formMessageEl.scrollIntoView({ behavior: 'smooth' });
+  }
+};
+
+// Fetch events with async/await
+const fetchEventsAsync = async () => {
+  showLoading();
+  try {
+    const response = await fetch(MOCK_URL);
+    if (!response.ok) throw new Error('Network response was not OK');
+    const data = await response.json();
+    const events = [...data].map(({ title, body }) => ({
+      title: title.charAt(0).toUpperCase() + title.slice(1),
+      date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0, 10),
+      location: "Virtual",
+      category: "Demo",
+      description: body,
+    }));
+    renderEvents(events);
+  } catch (error) {
+    console.error('Async fetching error:', error);
+    showError('Failed to load events. Please try again later.');
+  }
+};
+
+// Initialize the app
+const init = () => {
+  fetchEventsAsync();
+  registrationForm.addEventListener('submit', handleFormSubmit);
+};
+
+// Start the application
+init();
