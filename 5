@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Community Event Portal with Objects & Prototypes</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #e0f7fa 0%, #80deea 100%);
+    color: #222;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  header {
+    background-color: #00796b;
+    color: white;
+    padding: 1.5rem 1rem;
+    text-align: center;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    margin-bottom: 20px;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    flex-grow: 1;
+  }
+  h1, h2 {
+    margin: 0 0 0.5rem;
+  }
+  #event-list p {
+    font-style: italic;
+    color: #555;
+    background-color: rgba(255 255 255 / 0.6);
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .event {
+    background-color: white;
+    padding: 20px 25px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 7px 20px rgba(0,0,0,0.12);
+    transition: box-shadow 0.3s ease;
+  }
+  .event:hover {
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+  }
+  .event h3 {
+    color: #00796b;
+    margin-bottom: 10px;
+  }
+  .event dl {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 15px;
+    margin: 6px 0 16px 0;
+  }
+  .event dt {
+    font-weight: 700;
+    min-width: 110px;
+    color: #004d40;
+  }
+  .event dd {
+    margin: 0;
+    flex: 1 1 200px;
+  }
+  button {
+    background-color: #00796b;
+    color: white;
+    border: none;
+    padding: 12px 26px;
+    font-size: 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+  }
+  button:hover:not(:disabled) {
+    background-color: #004d40;
+  }
+  button:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+  }
+  footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 18px 8px;
+    background-color: #004d40;
+    color: #b2dfdb;
+    border-radius: 10px;
+    box-shadow: 0 -5px 10px rgba(0,0,0,0.1);
+  }
+  /* Filter Section */
+  #filter-section {
+    margin: 25px 0 30px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 7px 25px rgba(0,0,0,0.05);
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  #filter-section label {
+    font-weight: 600;
+    color: #004d40;
+    margin-right: 8px;
+  }
+  #categorySelect {
+    padding: 8px 12px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1.5px solid #004d40;
+    min-width: 160px;
+    cursor: pointer;
+    transition: border-color 0.25s ease;
+  }
+  #categorySelect:hover, #categorySelect:focus {
+    border-color: #00796b;
+    outline: none;
+  }
+  #resetFilterBtn {
+    background-color: #004d40;
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    border: none;
+    color: white;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+  }
+  #resetFilterBtn:hover {
+    background-color: #00796b;
+  }
+  @media (max-width: 600px) {
+    button {
+      width: 100%;
+    }
+    #filter-section {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    #categorySelect, #resetFilterBtn {
+      width: 100%;
+      max-width: none;
+    }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Welcome to Our Community Portal</h1>
+      <p>Discover and register for upcoming local events</p>
+    </header>
+
+    <section id="filter-section" aria-label="Filter Events">
+      <label for="categorySelect">Filter by Category:</label>
+      <select id="categorySelect" aria-controls="event-list">
+        <option value="">-- All Categories --</option>
+      </select>
+      <button id="resetFilterBtn" title="Reset filter to show all events">Reset Filter</button>
+    </section>
+
+    <main>
+      <section id="events" aria-live="polite" aria-relevant="additions removals">
+        <h2>Upcoming Events with Available Seats</h2>
+        <div id="event-list" role="region" aria-label="List of upcoming events">
+          <p>Loading events...</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <footer>
+    <p>&copy; 2023 Local Community Portal. All rights reserved.</p>
+  </footer>
+
+<script>
+  // Welcome message
+  console.log("Welcome to the Community Portal");
+
+  // Current date normalized
+  const currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+
+  // Event class definition
+  class Event {
+    constructor({id, title, date, location, category, description, totalSeats, availableSeats}) {
+      this.id = id;
+      this.title = title;
+      this.date = date;
+      this.location = location;
+      this.category = category;
+      this.description = description;
+      this.totalSeats = totalSeats;
+      this.availableSeats = availableSeats;
+    }
+
+    checkAvailability() {
+      return this.availableSeats > 0;
+    }
+  }
+
+  // Closure to track registrations per category
+  function createCategoryTracker() {
+    const categoryCounts = {};
+    return function(category) {
+      if (!categoryCounts[category]) {
+        categoryCounts[category] = 0;
+      }
+      categoryCounts[category]++;
+      return categoryCounts[category];
+    };
+  }
+  const trackCategoryRegistration = createCategoryTracker();
+
+  // Store Event instances
+  let allEvents = [];
+
+  window.addEventListener('DOMContentLoaded', () => {
+    alert("The Community Portal has finished loading! Welcome!");
+    initializePortal();
+    setupFilterControls();
+  });
+
+  // Initialize portal loading sample events as Event instances
+  function initializePortal() {
+    const sampleRawEvents = [
+      {
+        id: 1,
+        title: "Community Clean-Up Day",
+        date: "2023-11-15",
+        location: "Central Park",
+        category: "Environment",
+        description: "Join us for a day of cleaning up our community park!",
+        totalSeats: 50,
+        availableSeats: 50
+      },
+      {
+        id: 2,
+        title: "Local Farmers Market",
+        date: "2023-11-18",
+        location: "Main Street",
+        category: "Food",
+        description: "Fresh produce from local farmers every Saturday morning.",
+        totalSeats: 200,
+        availableSeats: 0 // Sold out
+      },
+      {
+        id: 3,
+        title: "Book Club Meeting",
+        date: "2023-10-20",
+        location: "Community Library",
+        category: "Education",
+        description: "This month we're discussing 'The Great Gatsby'.",
+        totalSeats: 30,
+        availableSeats: 5
+      },
+      {
+        id: 4,
+        title: "Winter Festival",
+        date: "2023-12-10",
+        location: "Town Square",
+        category: "Festival",
+        description: "Annual winter celebration with music and food.",
+        totalSeats: 300,
+        availableSeats: 150
+      }
+    ];
+    // Convert plain objects to Event instances
+    allEvents = sampleRawEvents.map(eventObj => new Event(eventObj));
+    displayValidEvents(allEvents);
+    populateCategoryFilter(allEvents);
+  }
+
+  // Show only future events with available seats
+  function displayValidEvents(events) {
+    try {
+      const eventList = document.getElementById('event-list');
+      eventList.innerHTML = '<p>Loading upcoming events...</p>';
+
+      const validEvents = events.filter(event => {
+        const eventDate = new Date(event.date);
+        eventDate.setHours(0,0,0,0);
+        return eventDate >= currentDate && event.checkAvailability();
+      });
+
+      if (validEvents.length === 0) {
+        eventList.innerHTML = '<p>No upcoming events with available seats found.</p>';
+        return;
+      }
+
+      eventList.innerHTML = '';
+      validEvents.forEach(event => displayEvent(event));
+    } catch (err) {
+      console.error("Error displaying events:", err);
+      document.getElementById('event-list').innerHTML = '<p class="error">Error loading events. Please refresh the page.</p>';
+    }
+  }
+
+  // Display event using Object.entries() to show keys and values
+  function displayEvent(event) {
+    const eventList = document.getElementById('event-list');
+    const eventElement = document.createElement('div');
+    eventElement.className = 'event';
+    eventElement.tabIndex = 0;
+    eventElement.setAttribute('aria-label', `${event.title}, scheduled on ${formatDate(event.date)} at ${event.location}. Category: ${event.category}. ${event.description}. Seats available: ${event.availableSeats} out of ${event.totalSeats}`);
+
+    let detailsHTML = '<dl>';
+    // Use Object.entries to dynamically list all keys and values except any function properties
+    for (const [key, value] of Object.entries(event)) {
+      if (typeof value !== 'function') {
+        let displayValue = value;
+        if (key === 'date') {
+          displayValue = formatDate(value);
+        }
+        if (key === 'availableSeats' || key === 'totalSeats') {
+          displayValue = value;
+        }
+        // Capitalize first letter and replace camelCase keys with spaced words
+        const label = key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
+        detailsHTML += `<dt>${label}:</dt><dd>${displayValue}</dd>`;
+      }
+    }
+    detailsHTML += '</dl>';
+
+    eventElement.innerHTML = `<h3>${event.title}</h3>${detailsHTML}`;
+
+    const button = document.createElement('button');
+    button.textContent = 'Register';
+    button.disabled = !event.checkAvailability();
+    button.setAttribute('aria-disabled', button.disabled.toString());
+    button.setAttribute('aria-label', `Register for ${event.title}`);
+    button.onclick = () => handleRegistration(event);
+
+    eventElement.appendChild(button);
+    eventList.appendChild(eventElement);
+  }
+
+  // Registration handler with availability check and category tracking
+  function handleRegistration(event) {
+    try {
+      if (!event || !event.id) throw new Error("Invalid event data");
+
+      if (!event.checkAvailability()) {
+        alert("Sorry, this event is fully booked!");
+        return;
+      }
+      event.availableSeats--;
+
+      const totalRegs = trackCategoryRegistration(event.category);
+
+      alert(`Successfully registered for ${event.title}!
+Date: ${formatDate(event.date)}
+Location: ${event.location}
+Remaining Seats: ${event.availableSeats}
+Total Registrations in ${event.category}: ${totalRegs}`);
+
+      displayValidEvents(allEvents);
+    } catch(err) {
+      console.error("Registration error:", err);
+      alert("There was a problem with your registration. Please try again.");
+    }
+  }
+
+  // Format date for display
+  function formatDate(dateStr) {
+    const opts = {year:'numeric', month:'long', day:'numeric'};
+    return new Date(dateStr).toLocaleDateString(undefined, opts);
+  }
+
+  // Populate categories dropdown filter dynamically
+  function populateCategoryFilter(events) {
+    const categorySelect = document.getElementById('categorySelect');
+    const uniqueCategories = [...new Set(events.map(ev => ev.category).filter(Boolean))];
+    categorySelect.innerHTML = '<option value="">-- All Categories --</option>';
+    uniqueCategories.forEach(cat => {
+      const option = document.createElement('option');
+      option.value = cat;
+      option.textContent = cat;
+      categorySelect.appendChild(option);
+    });
+  }
+
+  // Filter control logic
+  function setupFilterControls() {
+    const categorySelect = document.getElementById('categorySelect');
+    const resetBtn = document.getElementById('resetFilterBtn');
+
+    categorySelect.addEventListener('change', () => {
+      filterEventsByCategory(allEvents, categorySelect.value, filtered => {
+        displayValidEvents(filtered);
+      })
+    });
+
+    resetBtn.addEventListener('click', () => {
+      categorySelect.value = '';
+      displayValidEvents(allEvents);
+    });
+  }
+
+  // Filter events by category and execute callback with filtered list
+  function filterEventsByCategory(events, category, callback) {
+    if (!category) {
+      callback(events);
+      return;
+    }
+    const filtered = events.filter(event => event.category === category);
+    callback(filtered);
+  }
+</script>
+</body>
+</html>
