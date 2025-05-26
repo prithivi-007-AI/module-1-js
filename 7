@@ -1,0 +1,234 @@
+//index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Community Events - DOM Manipulation</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #d0e6ff 0%, #93c6ff 100%);
+    color: #003366;
+    padding: 20px;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  h1 {
+    margin: 0;
+    font-weight: 700;
+  }
+  #event-list {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+    gap: 20px;
+  }
+  .event-card {
+    background: white;
+    padding: 18px 22px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .event-card h2 {
+    margin: 0 0 12px 0;
+    color: #00509e;
+  }
+  .event-info {
+    margin-bottom: 14px;
+    font-style: italic;
+    color: #004080;
+  }
+  .event-desc {
+    flex-grow: 1;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  button {
+    background-color: #00509e;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.25s ease;
+  }
+  button:hover:not(:disabled) {
+    background-color: #003d66;
+  }
+  button:disabled {
+    background-color: #96b9d9;
+    cursor: not-allowed;
+  }
+  footer {
+    margin-top: auto;
+    text-align: center;
+    font-size: 0.9em;
+    color: #003366;
+    padding: 12px 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Community Events Portal</h1>
+  <p>Register or Cancel your participation</p>
+</header>
+
+<main>
+  <section id="event-list" aria-live="polite" aria-label="List of community events">
+    <!-- Events will be dynamically added here -->
+  </section>
+</main>
+
+<footer>
+  &copy; 2023 Community Portal
+</footer>
+
+<script src="dom-events.js"></script>
+</body>
+</html>
+
+//main.js
+// Sample events array
+const events = [
+  {
+    id: 1,
+    title: "Community Jazz Festival",
+    date: "2023-11-25",
+    location: "Town Hall",
+    category: "Music",
+    description: "Experience live jazz music performances from local bands.",
+    totalSeats: 100,
+    availableSeats: 30,
+  },
+  {
+    id: 2,
+    title: "Outdoor Yoga Session",
+    date: "2023-12-05",
+    location: "City Park",
+    category: "Wellness",
+    description: "Relax and rejuvenate in this group yoga session.",
+    totalSeats: 40,
+    availableSeats: 5,
+  },
+  {
+    id: 3,
+    title: "Tech Workshop",
+    date: "2023-11-30",
+    location: "Community Center",
+    category: "Education",
+    description: "Learn basic coding and tech skills in this interactive workshop.",
+    totalSeats: 60,
+    availableSeats: 0,
+  }
+];
+
+// Reference to the container
+const eventListEl = document.querySelector("#event-list");
+
+// Helper function to format date nicely
+function formatDate(dateStr) {
+  const options = { year: "numeric", month: "long", day: "numeric" };
+  return new Date(dateStr).toLocaleDateString(undefined, options);
+}
+
+// Create and append event card elements dynamically
+function renderEvents() {
+  eventListEl.innerHTML = ""; // Clear existing
+
+  events.forEach(event => {
+    const card = document.createElement("article");
+    card.classList.add("event-card");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `${event.title}, on ${formatDate(event.date)}, at ${event.location}, category ${event.category}`);
+
+    // Title
+    const titleEl = document.createElement("h2");
+    titleEl.textContent = event.title;
+
+    // Info line
+    const infoEl = document.createElement("p");
+    infoEl.className = "event-info";
+    infoEl.textContent = `${formatDate(event.date)} | ${event.location} | Category: ${event.category}`;
+
+    // Description
+    const descEl = document.createElement("p");
+    descEl.className = "event-desc";
+    descEl.textContent = event.description;
+
+    // Seats available
+    const seatsEl = document.createElement("p");
+    seatsEl.textContent = `Seats Available: ${event.availableSeats} / ${event.totalSeats}`;
+
+    // Buttons container
+    const btnContainer = document.createElement("div");
+
+    // Register button
+    const registerBtn = document.createElement("button");
+    registerBtn.textContent = "Register";
+    registerBtn.disabled = event.availableSeats === 0;
+    registerBtn.setAttribute("aria-disabled", String(registerBtn.disabled));
+    registerBtn.addEventListener("click", () => {
+      if (event.availableSeats > 0) {
+        event.availableSeats--;
+        updateUI();
+        alert(`Registered for "${event.title}". Seats left: ${event.availableSeats}`);
+      }
+    });
+
+    // Cancel button
+    const cancelBtn = document.createElement("button");
+    cancelBtn.textContent = "Cancel Registration";
+    cancelBtn.disabled = event.availableSeats === event.totalSeats;
+    cancelBtn.setAttribute("aria-disabled", String(cancelBtn.disabled));
+    cancelBtn.style.marginLeft = "10px";
+    cancelBtn.addEventListener("click", () => {
+      if (event.availableSeats < event.totalSeats) {
+        event.availableSeats++;
+        updateUI();
+        alert(`Registration cancelled for "${event.title}". Seats left: ${event.availableSeats}`);
+      }
+    });
+
+    btnContainer.appendChild(registerBtn);
+    btnContainer.appendChild(cancelBtn);
+
+    // Append elements to card
+    card.appendChild(titleEl);
+    card.appendChild(infoEl);
+    card.appendChild(descEl);
+    card.appendChild(seatsEl);
+    card.appendChild(btnContainer);
+
+    // Append card to event list
+    eventListEl.appendChild(card);
+  });
+
+  // If no events show message
+  if (events.length === 0) {
+    const noEventsMsg = document.createElement("p");
+    noEventsMsg.textContent = "No events to display.";
+    eventListEl.appendChild(noEventsMsg);
+  }
+}
+
+// Update entire UI (re-render)
+function updateUI() {
+  renderEvents();
+}
+
+// Initial render
+updateUI();
