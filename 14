@@ -1,0 +1,144 @@
+// Debugging flag - turn on for detailed logging
+const DEBUG_MODE = true;
+
+const eventListEl = document.getElementById("event-list");
+const registrationForm = document.getElementById("registration-form");
+const formMessageEl = document.getElementById("form-message");
+const eventSelect = document.getElementById("event");
+const registerBtn = document.getElementById("registerBtn"); // Register button
+
+// Debug logger
+const debugLog = (...messages) => {
+  if (DEBUG_MODE) {
+    console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', ...messages);
+  }
+};
+
+// Error logger
+const errorLog = (...messages) => {
+  console.error('%c[ERROR]', 'color: #F44336; font-weight: bold', ...messages);
+};
+
+// Show loading spinner
+const showLoading = () => {
+  debugLog('Showing loading spinner');
+  eventListEl.innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
+};
+
+// Show error message
+const showError = (message = 'An error occurred') => {
+  errorLog('Displaying error message:', message);
+  eventListEl.innerHTML = `<p class="error-msg" role="alert">${message}</p>`;
+};
+
+// Format date helper
+const formatDate = (dateStr = '') => {
+  const options = { year: "numeric", month: "long", day: "numeric" };
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString(undefined, options);
+};
+
+// Render events dynamically
+const renderEvents = (events = []) => {
+  debugLog('Rendering events:', events);
+  
+  if (!Array.isArray(events) || events.length === 0) {
+    debugLog('No events to render');
+    eventListEl.innerHTML = '<p>No events available.</p>';
+    return;
+  }
+  
+  eventListEl.innerHTML = '';
+  eventSelect.innerHTML = '<option value="">-- Please select an event --</option>';
+  
+  events.forEach((event, index) => {
+    // Debug breakpoint - inspect each event
+    if (DEBUG_MODE) debugger;
+    
+    const { title, date, location, category, description } = event;
+
+    const card = document.createElement('article');
+    card.className = 'event-card';
+    card.tabIndex = 0;
+    card.setAttribute('aria-label', `${title}, on ${formatDate(date)}, at ${location}, category ${category}`);
+
+    const titleEl = document.createElement('h2');
+    titleEl.textContent = title;
+
+    const info = document.createElement('p');
+    info.className = 'event-info';
+    info.textContent = `${formatDate(date)} | ${location} | Category: ${category}`;
+
+    const desc = document.createElement('p');
+    desc.className = 'event-desc';
+    desc.textContent = description || '';
+
+    card.append(titleEl, info, desc);
+    eventListEl.appendChild(card);
+    
+    const option = document.createElement('option');
+    option.value = title;
+    option.textContent = `${title} (${formatDate(date)})`;
+    option.dataset.debugId = `event-${index}`; // For debugging
+    eventSelect.appendChild(option);
+  });
+};
+
+// Fetch events with enhanced debugging
+const fetchEventsAsync = async () => {
+  showLoading();
+  try {
+    debugLog('Fetching events from:', MOCK_URL);
+    
+    // Breakpoint to inspect before fetch
+    if (DEBUG_MODE) debugger;
+    
+    const response = await debugFetch(MOCK_URL);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch events: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    debugLog('Events data received:', data);
+    
+    const events = [...data].map(({ title, body }, index) => ({
+      id: index + 1,
+      title: title.charAt(0).toUpperCase() + title.slice(1),
+      date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0, 10),
+      location: "Virtual",
+      category: "Demo",
+      description: body,
+    }));
+    
+    renderEvents(events);
+  } catch (error) {
+    errorLog('Error fetching events:', error);
+    showError('Failed to load events. Please try again later.');
+  }
+};
+
+// Handle register button click with jQuery
+$(document).ready(function() {
+  $('#registerBtn').click(function() {
+    const $eventCard = $('.event-card'); // Select all event cards
+    if ($eventCard.is(':visible')) {
+      $eventCard.fadeOut('slow');
+    } else {
+      $eventCard.fadeIn('slow');
+    }
+  });
+});
+
+// Initialize the app with debug info
+const init = () => {
+  debugLog('Initializing application');
+  console.log('%c=== DEBUG MODE ACTIVE ===', 'color: white; background: #4CAF50; padding: 5px;');
+  
+  fetchEventsAsync();
+  registrationForm.addEventListener('submit', handleFormSubmit);
+};
+
+// Start the application
+init();
+
