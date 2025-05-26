@@ -1,0 +1,220 @@
+//index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Community Event Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .event {
+            background-color: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .sold-out {
+            color: red;
+            font-weight: bold;
+        }
+        footer {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #ddd;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Welcome to Our Community Portal</h1>
+            <p>Discover and register for local events</p>
+        </header>
+        
+        <main>
+            <section id="events">
+                <h2>Upcoming Events</h2>
+                <div id="event-list">
+                    <!-- Events will be loaded here by JavaScript -->
+                    <p>Loading events...</p>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>&copy; 2023 Local Community Portal</p>
+        </footer>
+    </div>
+
+    <script src="main.js"></script>
+</body>
+</html>
+
+//main.js
+// Basic welcome message to console
+console.log("Welcome to the Community Portal");
+
+// Alert when page is fully loaded
+window.addEventListener('DOMContentLoaded', function() {
+    alert("The Community Portal has finished loading! Welcome!");
+    
+    // Initialize the portal
+    initializePortal();
+});
+
+// Portal initialization function
+function initializePortal() {
+    // Sample events data with const for immutable properties and let for seats
+    const sampleEvents = [
+        {
+            id: 1,
+            title: "Community Clean-Up Day",
+            date: "2023-11-15",
+            location: "Central Park",
+            category: "Environment",
+            description: "Join us for a day of cleaning up our community park!",
+            totalSeats: 50,
+            availableSeats: 50
+        },
+        {
+            id: 2,
+            title: "Local Farmers Market",
+            date: "2023-11-18",
+            location: "Main Street",
+            category: "Food",
+            description: "Fresh produce from local farmers every Saturday morning.",
+            totalSeats: 200,
+            availableSeats: 200
+        },
+        {
+            id: 3,
+            title: "Book Club Meeting",
+            date: "2023-11-20",
+            location: "Community Library",
+            category: "Education",
+            description: "This month we're discussing 'The Great Gatsby'.",
+            totalSeats: 30,
+            availableSeats: 30
+        }
+    ];
+
+    // Display sample events
+    displayEvents(sampleEvents);
+}
+
+// Function to display events
+function displayEvents(events) {
+    const eventList = document.getElementById('event-list');
+    eventList.innerHTML = ''; // Clear loading message
+    
+    if (events.length === 0) {
+        eventList.innerHTML = '<p>No upcoming events found.</p>';
+        return;
+    }
+
+    events.forEach(event => {
+        // Using template literals to concatenate event info
+        const eventInfo = `
+            <h3>${event.title}</h3>
+            <p><strong>Date:</strong> ${event.date}</p>
+            <p><strong>Location:</strong> ${event.location}</p>
+            <p><strong>Category:</strong> ${event.category}</p>
+            <p>${event.description}</p>
+            <p><strong>Seats Available:</strong> ${event.availableSeats}/${event.totalSeats}</p>
+        `;
+
+        const eventElement = document.createElement('div');
+        eventElement.className = 'event';
+        eventElement.innerHTML = eventInfo;
+        
+        // Only show register button if seats are available
+        if (event.availableSeats > 0) {
+            const registerBtn = document.createElement('button');
+            registerBtn.textContent = 'Register';
+            registerBtn.onclick = () => registerForEvent(event); // Pass the whole event object
+            eventElement.appendChild(registerBtn);
+        } else {
+            const soldOut = document.createElement('p');
+            soldOut.textContent = 'Sold Out';
+            soldOut.style.color = 'red';
+            eventElement.appendChild(soldOut);
+        }
+        
+        eventElement.appendChild(document.createElement('hr'));
+        eventList.appendChild(eventElement);
+    });
+}
+
+// Function to handle event registration
+function registerForEvent(event) {
+    // Check if seats are available
+    if (event.availableSeats <= 0) {
+        alert("Sorry, this event is fully booked!");
+        return;
+    }
+
+    // Decrement available seats using -- operator
+    event.availableSeats--;
+    
+    // Using template literals for the confirmation message
+    alert(`Thank you for registering for ${event.title}!
+Date: ${event.date}
+Location: ${event.location}
+Remaining Seats: ${event.availableSeats}`);
+
+    console.log(`User registered for: ${event.title}. Seats left: ${event.availableSeats}`);
+    
+    // Refresh the events display
+    const eventList = document.getElementById('event-list');
+    const events = Array.from(eventList.children).map(el => {
+        return {
+            id: event.id,
+            title: event.title,
+            date: event.date,
+            location: event.location,
+            category: event.category,
+            description: event.description,
+            totalSeats: event.totalSeats,
+            availableSeats: event.availableSeats
+        };
+    });
+    
+    displayEvents(events);
+}
