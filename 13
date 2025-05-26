@@ -1,0 +1,373 @@
+// Debugging flag - turn on for detailed logging
+const DEBUG_MODE = true;
+
+const eventListEl = document.getElementById("event-list");
+const registrationForm = document.getElementById("registration-form");
+const formMessageEl = document.getElementById("form-message");
+const eventSelect = document.getElementById("event");
+
+// Debug logger
+const debugLog = (...messages) => {
+  if (DEBUG_MODE) {
+    console.log('%c[DEBUG]', 'color: #4CAF50; font-weight: bold', ...messages);
+  }
+};
+
+// Error logger
+const errorLog = (...messages) => {
+  console.error('%c[ERROR]', 'color: #F44336; font-weight: bold', ...messages);
+};
+
+// Show loading spinner
+const showLoading = () => {
+  debugLog('Showing loading spinner');
+  eventListEl.innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
+};
+
+// Show error message
+const showError = (message = 'An error occurred') => {
+  errorLog('Displaying error message:', message);
+  eventListEl.innerHTML = `<p class="error-msg" role="alert">${message}</p>`;
+};
+
+// Format date helper
+const formatDate = (dateStr = '') => {
+  const options = { year: "numeric", month: "long", day: "numeric" };
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString(undefined, options);
+};
+
+// Render events dynamically
+const renderEvents = (events = []) => {
+  debugLog('Rendering events:', events);
+  
+  if (!Array.isArray(events) || events.length === 0) {
+    debugLog('No events to render');
+    eventListEl.innerHTML = '<p>No events available.</p>';
+    return;
+  }
+  
+  eventListEl.innerHTML = '';
+  eventSelect.innerHTML = '<option value="">-- Please select an event --</option>';
+  
+  events.forEach((event, index) => {
+    // Debug breakpoint - inspect each event
+    if (DEBUG_MODE) debugger;
+    
+    const { title, date, location, category, description } = event;
+
+    const card = document.createElement('article');
+    card.className = 'event-card';
+    card.tabIndex = 0;
+    card.setAttribute('aria-label', `${title}, on ${formatDate(date)}, at ${location}, category ${category}`);
+
+    const titleEl = document.createElement('h2');
+    titleEl.textContent = title;
+
+    const info = document.createElement('p');
+    info.className = 'event-info';
+    info.textContent = `${formatDate(date)} | ${location} | Category: ${category}`;
+
+    const desc = document.createElement('p');
+    desc.className = 'event-desc';
+    desc.textContent = description || '';
+
+    card.append(titleEl, info, desc);
+    eventListEl.appendChild(card);
+    
+    const option = document.createElement('option');
+    option.value = title;
+    option.textContent = `${title} (${formatDate(date)})`;
+    option.dataset.debugId = `event-${index}`; // For debugging
+    eventSelect.appendChild(option);
+  });
+};
+
+const MOCK_URL = 'https://jsonplaceholder.typicode.com/posts?_limit=5';
+const MOCK_API_URL = 'https://jsonplaceholder.typicode.com/posts';
+
+// Form validation
+const validateForm = (formData) => {
+  debugLog('Validating form data:', formData);
+  let isValid = true;
+  
+  document.querySelectorAll('.error').forEach(el => el.textContent = '');
+  
+  if (!formData.name.trim()) {
+    debugLog('Validation failed: Name is empty');
+    document.getElementById('name-error').textContent = 'Name is required';
+    isValid = false;
+  }
+  
+  if (!formData.email.trim()) {
+    debugLog('Validation failed: Email is empty');
+    document.getElementById('email-error').textContent = 'Email is required';
+    isValid = false;
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    debugLog('Validation failed: Invalid email format');
+    document.getElementById('email-error').textContent = 'Please enter a valid email';
+    isValid = false;
+  }
+  
+  if (!formData.event) {
+    debugLog('Validation failed: No event selected');
+    document.getElementById('event-error').textContent = 'Please select an event';
+    isValid = false;
+  }
+  
+  debugLog('Form validation result:', isValid ? 'VALID' : 'INVALID');
+  return isValid;
+};
+
+// Show loading state for form submission
+const showFormLoading = (isLoading) => {
+  debugLog(isLoading ? 'Showing form loading state' : 'Hiding form loading state');
+  const submitBtn = registrationForm.querySelector('button[type="submit"]');
+  if (isLoading) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner small"></span> Registering...';
+  } else {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Register';
+  }
+};
+
+// Debugging function to inspect fetch request
+const debugFetch = async (url, options) => {
+  debugLog('Preparing fetch request:', { url, options });
+  
+  // Breakpoint to inspect request before sending
+  if (DEBUG_MODE) debugger;
+  
+  try {
+    const startTime = performance.now();
+    const response = await fetch(url, options);
+    const duration = performance.now() - startTime;
+    
+    debugLog(`Fetch completed in ${duration.toFixed(2)}ms`, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: [...response.headers.entries()],
+      url: response.url
+    });
+    
+    // Clone response to log body without consuming it
+    const clone = response.clone();
+    const body = await clone.json().catch(() => ({}));
+    
+    debugLog('Response body:', body);
+    return response;
+  } catch (error) {
+    errorLog('Fetch error:', error);
+    throw error;
+  }
+};
+
+// Handle form submission with AJAX
+const handleFormSubmit = async (e) => {
+  e.preventDefault();
+  debugLog('Form submission started');
+  
+  const formData = {
+    name: registrationForm.elements.name.value,
+    email: registrationForm.elements.email.value,
+    event: registrationForm.elements.event.value
+  };
+  
+  debugLog('Form data collected:', formData);
+  
+  if (!validateForm(formData)) {
+    return;
+  }
+  
+  showFormLoading(true);
+  formMessageEl.innerHTML = '';
+  
+  try {
+    // Breakpoint to inspect data before submission
+    if (DEBUG_MODE) debugger;
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    const payload = {
+      title: `Registration for ${formData.event}`,
+      body: `Attendee: ${formData.name}\nEmail: ${formData.email}`,
+      userId: 1,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent
+      }
+    };
+    
+    debugLog('Preparing payload:', payload);
+    
+    const response = await debugFetch(MOCK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Debug-Mode': DEBUG_MODE ? 'active' : 'inactive'
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const error = new Error(`HTTP error! status: ${response.status}`);
+      error.response = response;
+      throw error;
+    }
+    
+    const data = await response.json();
+    debugLog('Registration successful, response:', data);
+    
+    formMessageEl.innerHTML = `
+      <div class="success-msg" role="alert">
+        <h3>Registration Successful!</h3>
+        <p>Thank you, ${formData.name}!</p>
+        <p>You have successfully registered for "${formData.event}".</p>
+        <p>A confirmation has been sent to ${formData.email}.</p>
+        <p><small>Reference ID: ${data.id}</small></p>
+      </div>
+    `;
+    
+    registrationForm.reset();
+    debugLog('Form reset after successful submission');
+  } catch (error) {
+    errorLog('Registration failed:', error);
+    
+    let errorDetails = error.message;
+    if (error.response) {
+      try {
+        const errData = await error.response.json();
+        errorDetails = errData.message || JSON.stringify(errData);
+      } catch (e) {
+        errorDetails = `Status: ${error.response.status}`;
+      }
+    }
+    
+    formMessageEl.innerHTML = `
+      <div class="error-msg" role="alert">
+        <h3>Registration Failed</h3>
+        <p>${errorDetails}</p>
+        <p>Please try again later.</p>
+        ${DEBUG_MODE ? `<pre class="error-details">${JSON.stringify(error, null, 2)}</pre>` : ''}
+      </div>
+    `;
+  } finally {
+    showFormLoading(false);
+    formMessageEl.scrollIntoView({ behavior: 'smooth' });
+    debugLog('Form submission process completed');
+  }
+};
+
+// Fetch events with enhanced debugging
+const fetchEventsAsync = async () => {
+  showLoading();
+  try {
+    debugLog('Fetching events from:', MOCK_URL);
+    
+    // Breakpoint to inspect before fetch
+    if (DEBUG_MODE) debugger;
+    
+    const response = await debugFetch(MOCK_URL);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch events: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    debugLog('Events data received:', data);
+    
+    const events = [...data].map(({ title, body }, index) => ({
+      id: index + 1,
+      title: title.charAt(0).toUpperCase() + title.slice(1),
+      date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0, 10),
+      location: "Virtual",
+      category: "Demo",
+      description: body,
+    }));
+    
+    renderEvents(events);
+  } catch (error) {
+    errorLog('Error fetching events:', error);
+    showError('Failed to load events. Please try again later.');
+  }
+};
+
+// Initialize the app with debug info
+const init = () => {
+  debugLog('Initializing application');
+  console.log('%c=== DEBUG MODE ACTIVE ===', 'color: white; background: #4CAF50; padding: 5px;');
+  
+  // Add debug info to DOM
+  if (DEBUG_MODE) {
+    const debugInfo = document.createElement('div');
+    debugInfo.style.position = 'fixed';
+    debugInfo.style.bottom = '10px';
+    debugInfo.style.right = '10px';
+    debugInfo.style.backgroundColor = '#4CAF50';
+    debugInfo.style.color = 'white';
+    debugInfo.style.padding = '5px 10px';
+    debugInfo.style.borderRadius = '4px';
+    debugInfo.style.zIndex = '1000';
+    debugInfo.textContent = 'DEBUG MODE';
+    document.body.appendChild(debugInfo);
+  }
+  
+  fetchEventsAsync();
+  registrationForm.addEventListener('submit', handleFormSubmit);
+  
+  // Expose useful functions to global scope for debugging
+  if (DEBUG_MODE) {
+    window.debug = {
+      getFormData: () => ({
+        name: registrationForm.elements.name.value,
+        email: registrationForm.elements.email.value,
+        event: registrationForm.elements.event.value
+      }),
+      simulateSuccess: () => {
+        formMessageEl.innerHTML = `
+          <div class="success-msg" role="alert">
+            <h3>Debug: Simulated Success</h3>
+            <p>This is a test success message.</p>
+          </div>
+        `;
+      },
+      simulateError: () => {
+        formMessageEl.innerHTML = `
+          <div class="error-msg" role="alert">
+            <h3>Debug: Simulated Error</h3>
+            <p>This is a test error message.</p>
+          </div>
+        `;
+      }
+    };
+  }
+};
+
+// Start the application
+init();
+
+/* Add to existing styles */
+.error-details {
+  background-color: #f8f8f8;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.debug-info {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  z-index: 1000;
+}
