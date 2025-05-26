@@ -1,0 +1,308 @@
+//index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Community Events - Async Data Fetch</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #d0e6ff 0%, #93c6ff 100%);
+    color: #003366;
+    padding: 20px;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  h1 {
+    margin: 0 0 6px;
+    font-weight: 700;
+  }
+  #event-list {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
+    gap: 20px;
+  }
+  .event-card {
+    background: white;
+    padding: 18px 22px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .event-card h2 {
+    margin: 0 0 12px 0;
+    color: #00509e;
+  }
+  .event-info {
+    margin-bottom: 14px;
+    font-style: italic;
+    color: #004080;
+  }
+  .event-desc {
+    flex-grow: 1;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  .spinner {
+    width: 50px;
+    height: 50px;
+    border: 6px solid #ccc;
+    border-top-color: #00509e;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 40px auto;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  .error-msg {
+    color: #b00020;
+    text-align: center;
+    font-weight: 700;
+    margin-top: 40px;
+  }
+  footer {
+    margin-top: auto;
+    text-align: center;
+    font-size: 0.9em;
+    color: #003366;
+    padding: 12px 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Community Events Portal</h1>
+  <p>Async data fetch with Promises and async/await</p>
+</header>
+
+<section id="event-list" aria-live="polite" aria-label="Community events">
+  <!-- Events or spinner or messages rendered here -->
+</section>
+
+<footer>
+  &copy; 2023 Community Portal
+</footer>
+
+<script>
+  const eventListEl = document.getElementById("event-list");
+
+  // Show loading spinner
+  function showLoading() {
+    eventListEl.innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
+  }
+
+  // Show error message
+  function showError(message) {
+    eventListEl.innerHTML = `<p class="error-msg" role="alert">${message}</p>`;
+  }
+
+  // Render events array into cards
+  function renderEvents(events) {
+    if (!Array.isArray(events) || events.length === 0) {
+      eventListEl.innerHTML = '<p>No events available.</p>';
+      return;
+    }
+    eventListEl.innerHTML = '';
+    events.forEach(event => {
+      const card = document.createElement('article');
+      card.className = 'event-card';
+      card.tabIndex = 0;
+      card.setAttribute('aria-label', `${event.title}, on ${formatDate(event.date)}, at ${event.location}, category ${event.category}`);
+
+      const title = document.createElement('h2');
+      title.textContent = event.title;
+
+      const info = document.createElement('p');
+      info.className = 'event-info';
+      info.textContent = `${formatDate(event.date)} | ${event.location} | Category: ${event.category}`;
+
+      const desc = document.createElement('p');
+      desc.className = 'event-desc';
+      desc.textContent = event.description || '';
+
+      card.append(title, info, desc);
+      eventListEl.appendChild(card);
+    });
+  }
+
+  function formatDate(dateStr) {
+    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+    return new Date(dateStr).toLocaleDateString(undefined, options);
+  }
+
+  // MOCK URL for demo purposes using JSONPlaceholder API posts endpoint as example
+  // We'll simulate events with posts, so adapt fields accordingly
+  const MOCK_URL = 'https://jsonplaceholder.typicode.com/posts?_limit=5';
+
+  // Example using .then() and .catch()
+  function fetchEventsWithPromises() {
+    showLoading();
+
+    fetch(MOCK_URL)
+      .then(response => {
+        if (!response.ok) throw new Error('Network response was not OK');
+        return response.json();
+      })
+      .then(data => {
+        // Map data from posts to event-like objects (mock)
+        const events = data.map(item => ({
+          title: item.title.charAt(0).toUpperCase() + item.title.slice(1),
+          date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0,10),
+          location: "Virtual",
+          category: "Demo",
+          description: item.body,
+        }));
+        renderEvents(events);
+      })
+      .catch(error => {
+        console.error('Fetching error:', error);
+        showError('Failed to load events. Please try again later.');
+      });
+  }
+
+  // Async/Await version with loading spinner
+  async function fetchEventsAsync() {
+    showLoading();
+    try {
+      const response = await fetch(MOCK_URL);
+      if (!response.ok) throw new Error('Network response was not OK');
+      const data = await response.json();
+      const events = data.map(item => ({
+        title: item.title.charAt(0).toUpperCase() + item.title.slice(1),
+        date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0,10),
+        location: "Virtual",
+        category: "Demo",
+        description: item.body,
+      }));
+      renderEvents(events);
+    } catch (err) {
+      console.error('Async fetching error:', err);
+      showError('Failed to load events. Please try again later.');
+    }
+  }
+
+  // Choose one to run on load:
+
+  // Uncomment for .then()/.catch() version:
+  // fetchEventsWithPromises();
+
+  // Uncomment for async/await version:
+  fetchEventsAsync();
+
+</script>
+
+</body>
+</html>
+
+//main.js
+const eventListEl = document.getElementById("event-list");
+
+// Show loading spinner
+function showLoading() {
+  eventListEl.innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
+}
+
+// Show error message
+function showError(message) {
+  eventListEl.innerHTML = `<p class="error-msg" role="alert">${message}</p>`;
+}
+
+// Render events
+function renderEvents(events) {
+  if (!Array.isArray(events) || events.length === 0) {
+    eventListEl.innerHTML = '<p>No events available.</p>';
+    return;
+  }
+  eventListEl.innerHTML = '';
+  events.forEach(event => {
+    const card = document.createElement('article');
+    card.className = 'event-card';
+    card.tabIndex = 0;
+    card.setAttribute('aria-label', `${event.title}, on ${formatDate(event.date)}, at ${event.location}, category ${event.category}`);
+
+    const title = document.createElement('h2');
+    title.textContent = event.title;
+
+    const info = document.createElement('p');
+    info.className = 'event-info';
+    info.textContent = `${formatDate(event.date)} | ${event.location} | Category: ${event.category}`;
+
+    const desc = document.createElement('p');
+    desc.className = 'event-desc';
+    desc.textContent = event.description || '';
+
+    card.append(title, info, desc);
+    eventListEl.appendChild(card);
+  });
+}
+
+function formatDate(dateStr) {
+  const options = { year: 'numeric', month: 'long', day: 'numeric' };
+  return new Date(dateStr).toLocaleDateString(undefined, options);
+}
+
+const MOCK_URL = 'https://jsonplaceholder.typicode.com/posts?_limit=5';
+
+// Fetch using then/catch
+function fetchEventsWithPromises() {
+  showLoading();
+
+  fetch(MOCK_URL)
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not OK');
+      return response.json();
+    })
+    .then(data => {
+      const events = data.map(item => ({
+        title: item.title.charAt(0).toUpperCase() + item.title.slice(1),
+        date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0,10),
+        location: "Virtual",
+        category: "Demo",
+        description: item.body,
+      }));
+      renderEvents(events);
+    })
+    .catch(error => {
+      console.error('Fetching error:', error);
+      showError('Failed to load events. Please try again later.');
+    });
+}
+
+// Fetch using async/await
+async function fetchEventsAsync() {
+  showLoading();
+  try {
+    const response = await fetch(MOCK_URL);
+    if (!response.ok) throw new Error('Network response was not OK');
+    const data = await response.json();
+    const events = data.map(item => ({
+      title: item.title.charAt(0).toUpperCase() + item.title.slice(1),
+      date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0,10),
+      location: "Virtual",
+      category: "Demo",
+      description: item.body,
+    }));
+    renderEvents(events);
+  } catch (err) {
+    console.error('Async fetching error:', err);
+    showError('Failed to load events. Please try again later.');
+  }
+}
+
+// Example usage: Uncomment one to run
+
+// fetchEventsWithPromises();
+fetchEventsAsync();
