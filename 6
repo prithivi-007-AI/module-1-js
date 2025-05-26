@@ -1,0 +1,219 @@
+//index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Community Events - Arrays & Methods</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #ffe6f0 0%, #ffb6d5 100%);
+    color: #400036;
+    padding: 20px;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    text-align: center;
+    margin-bottom: 25px;
+  }
+  h1 {
+    margin: 0;
+    font-weight: 700;
+  }
+  #controls {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+  }
+  input[type=text] {
+    padding: 10px 14px;
+    font-size: 16px;
+    border-radius: 10px;
+    border: 2px solid #400036;
+    width: 240px;
+    max-width: 100%;
+  }
+  button {
+    background-color: #400036;
+    color: #fff;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    border-radius: 10px;
+    padding: 12px 18px;
+    font-weight: 600;
+    transition: background-color 0.25s ease;
+  }
+  button:hover {
+    background-color: #6a0d69;
+  }
+  #event-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .card {
+    background-color: #fff0f7;
+    border-radius: 12px;
+    padding: 16px 22px;
+    box-shadow: 0 5px 12px rgba(148, 78, 135, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(148, 78, 135, 0.35);
+  }
+  .card h3 {
+    margin: 0 0 10px 0;
+    color: #400036;
+  }
+  .info {
+    font-style: italic;
+    color: #751d5f;
+  }
+  footer {
+    margin-top: auto;
+    text-align: center;
+    padding: 12px 0;
+    font-size: 0.9em;
+    color: #751d5f;
+  }
+
+  @media(max-width: 480px) {
+    #controls {
+      flex-direction: column;
+      align-items: center;
+    }
+    input[type=text], button {
+      width: 100%;
+      max-width: 320px;
+    }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Community Events Manager</h1>
+  <p>Manage and filter your community events easily</p>
+</header>
+
+<section id="controls">
+  <input id="newEventTitle" type="text" placeholder="New Event Title (e.g. Workshop on Baking)" aria-label="New Event Title" />
+  <input id="newEventCategory" type="text" placeholder="New Event Category (e.g. Music)" aria-label="New Event Category" />
+  <button id="addEventBtn">Add New Event</button>
+  <button id="showMusicBtn">Show Only Music Events</button>
+  <button id="showAllBtn">Show All Events</button>
+</section>
+
+<section id="event-cards" aria-live="polite" aria-label="Event Cards">
+  <!-- Event cards displayed here -->
+</section>
+
+<footer>
+  &copy; 2023 Community Events Portal
+</footer>
+
+<script src="community-events.js"></script>
+</body>
+</html>
+
+//main.js
+// Array storing event objects
+const events = [
+  { id: 1, title: "Jazz Night", category: "Music" },
+  { id: 2, title: "Yoga Workshop", category: "Wellness" },
+  { id: 3, title: "Rock Concert", category: "Music" },
+  { id: 4, title: "Art Exhibit", category: "Art" },
+  { id: 5, title: "Photography Seminar", category: "Art" }
+];
+
+// Generate incremental IDs for new events
+let nextEventId = events.length + 1;
+
+// DOM elements
+const eventCardsContainer = document.getElementById("event-cards");
+const addEventBtn = document.getElementById("addEventBtn");
+const showMusicBtn = document.getElementById("showMusicBtn");
+const showAllBtn = document.getElementById("showAllBtn");
+const newEventTitleInput = document.getElementById("newEventTitle");
+const newEventCategoryInput = document.getElementById("newEventCategory");
+
+// Function to render event cards from a provided array of events
+function renderEventCards(eventsArray) {
+  eventCardsContainer.innerHTML = "";
+  if (eventsArray.length === 0) {
+    eventCardsContainer.innerHTML = `<p>No events to display.</p>`;
+    return;
+  }
+
+  // Use .map() to format event cards
+  const cardsHTML = eventsArray
+    .map(
+      (ev) => `
+      <article class="card" tabindex="0" aria-label="${ev.title}, category ${ev.category}">
+        <h3>${ev.title}</h3>
+        <p class="info">Category: ${ev.category}</p>
+      </article>
+    `
+    )
+    .join("");
+  eventCardsContainer.innerHTML = cardsHTML;
+}
+
+// Add new event from user inputs
+function addNewEvent() {
+  const title = newEventTitleInput.value.trim();
+  const category = newEventCategoryInput.value.trim();
+
+  if (!title) {
+    alert("Please enter a valid event title.");
+    return;
+  }
+  if (!category) {
+    alert("Please enter a valid event category.");
+    return;
+  }
+
+  // Add new event using .push()
+  const newEvent = {
+    id: nextEventId++,
+    title,
+    category,
+  };
+  events.push(newEvent);
+
+  // Render the updated list with the new event included
+  renderEventCards(events);
+
+  // Clear inputs
+  newEventTitleInput.value = "";
+  newEventCategoryInput.value = "";
+  newEventTitleInput.focus();
+}
+
+// Show only music category events using .filter()
+function showOnlyMusicEvents() {
+  const musicEvents = events.filter((ev) => ev.category.toLowerCase() === "music");
+  renderEventCards(musicEvents);
+}
+
+// Show all events
+function showAllEvents() {
+  renderEventCards(events);
+}
+
+// Event listeners
+addEventBtn.addEventListener("click", addNewEvent);
+showMusicBtn.addEventListener("click", showOnlyMusicEvents);
+showAllBtn.addEventListener("click", showAllEvents);
+
+// Initial render of all events
+showAllEvents();
