@@ -1,0 +1,287 @@
+//index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Listing</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .event-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .event-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .event-card h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        
+        .event-info {
+            color: #7f8c8d;
+            font-style: italic;
+            margin-bottom: 15px;
+        }
+        
+        .error-msg {
+            color: #e74c3c;
+            padding: 15px;
+            border: 1px solid #e74c3c;
+            border-radius: 4px;
+            background-color: #fadbd8;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #3498db;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 30px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Upcoming Events</h1>
+    <div id="event-list"></div>
+    
+    <script>
+        // Your JavaScript code here
+        const eventListEl = document.getElementById("event-list");
+
+        // Show loading spinner
+        const showLoading = () => {
+          eventListEl.innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
+        };
+
+        // Show error message
+        const showError = (message = 'An error occurred') => {
+          eventListEl.innerHTML = `<p class="error-msg" role="alert">${message}</p>`;
+        };
+
+        // Format date helper
+        const formatDate = (dateStr = '') => {
+          const options = { year: "numeric", month: "long", day: "numeric" };
+          if (!dateStr) return '';
+          return new Date(dateStr).toLocaleDateString(undefined, options);
+        };
+
+        // Render events dynamically
+        const renderEvents = (events = []) => {
+          if (!Array.isArray(events) || events.length === 0) {
+            eventListEl.innerHTML = '<p>No events available.</p>';
+            return;
+          }
+          eventListEl.innerHTML = '';
+          events.forEach(event => {
+            // Destructure event properties
+            const { title, date, location, category, description } = event;
+
+            const card = document.createElement('article');
+            card.className = 'event-card';
+            card.tabIndex = 0;
+            card.setAttribute('aria-label', `${title}, on ${formatDate(date)}, at ${location}, category ${category}`);
+
+            const titleEl = document.createElement('h2');
+            titleEl.textContent = title;
+
+            const info = document.createElement('p');
+            info.className = 'event-info';
+            info.textContent = `${formatDate(date)} | ${location} | Category: ${category}`;
+
+            const desc = document.createElement('p');
+            desc.className = 'event-desc';
+            desc.textContent = description || '';
+
+            card.append(titleEl, info, desc);
+            eventListEl.appendChild(card);
+          });
+        };
+
+        const MOCK_URL = 'https://jsonplaceholder.typicode.com/posts?_limit=5';
+
+        // Fetch events with promises
+        const fetchEventsWithPromises = () => {
+          showLoading();
+
+          fetch(MOCK_URL)
+            .then(response => {
+              if (!response.ok) throw new Error('Network response was not OK');
+              return response.json();
+            })
+            .then(data => {
+              // Use spread operator to clone array and map
+              const events = [...data].map(({ title, body }) => ({
+                title: title.charAt(0).toUpperCase() + title.slice(1),
+                date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0, 10),
+                location: "Virtual",
+                category: "Demo",
+                description: body,
+              }));
+              renderEvents(events);
+            })
+            .catch(error => {
+              console.error('Fetching error:', error);
+              showError('Failed to load events. Please try again later.');
+            });
+        };
+
+        // Fetch events with async/await
+        const fetchEventsAsync = async () => {
+          showLoading();
+          try {
+            const response = await fetch(MOCK_URL);
+            if (!response.ok) throw new Error('Network response was not OK');
+            const data = await response.json();
+            const events = [...data].map(({ title, body }) => ({
+              title: title.charAt(0).toUpperCase() + title.slice(1),
+              date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0, 10),
+              location: "Virtual",
+              category: "Demo",
+              description: body,
+            }));
+            renderEvents(events);
+          } catch (error) {
+            console.error('Async fetching error:', error);
+            showError('Failed to load events. Please try again later.');
+          }
+        };
+
+        // Run desired fetch version:
+        // fetchEventsWithPromises();
+        fetchEventsAsync();
+    </script>
+</body>
+</html>
+
+//main.js
+const eventListEl = document.getElementById("event-list");
+
+// Show loading spinner
+const showLoading = () => {
+  eventListEl.innerHTML = '<div class="spinner" role="status" aria-label="Loading"></div>';
+};
+
+// Show error message
+const showError = (message = 'An error occurred') => {
+  eventListEl.innerHTML = `<p class="error-msg" role="alert">${message}</p>`;
+};
+
+// Format date helper
+const formatDate = (dateStr = '') => {
+  const options = { year: "numeric", month: "long", day: "numeric" };
+  if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString(undefined, options);
+};
+
+// Render events dynamically
+const renderEvents = (events = []) => {
+  if (!Array.isArray(events) || events.length === 0) {
+    eventListEl.innerHTML = '<p>No events available.</p>';
+    return;
+  }
+  eventListEl.innerHTML = '';
+  events.forEach(event => {
+    // Destructure event properties
+    const { title, date, location, category, description } = event;
+
+    const card = document.createElement('article');
+    card.className = 'event-card';
+    card.tabIndex = 0;
+    card.setAttribute('aria-label', `${title}, on ${formatDate(date)}, at ${location}, category ${category}`);
+
+    const titleEl = document.createElement('h2');
+    titleEl.textContent = title;
+
+    const info = document.createElement('p');
+    info.className = 'event-info';
+    info.textContent = `${formatDate(date)} | ${location} | Category: ${category}`;
+
+    const desc = document.createElement('p');
+    desc.className = 'event-desc';
+    desc.textContent = description || '';
+
+    card.append(titleEl, info, desc);
+    eventListEl.appendChild(card);
+  });
+};
+
+const MOCK_URL = 'https://jsonplaceholder.typicode.com/posts?_limit=5';
+
+// Fetch events with promises
+const fetchEventsWithPromises = () => {
+  showLoading();
+
+  fetch(MOCK_URL)
+    .then(response => {
+      if (!response.ok) throw new Error('Network response was not OK');
+      return response.json();
+    })
+    .then(data => {
+      // Use spread operator to clone array and map
+      const events = [...data].map(({ title, body }) => ({
+        title: title.charAt(0).toUpperCase() + title.slice(1),
+        date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0, 10),
+        location: "Virtual",
+        category: "Demo",
+        description: body,
+      }));
+      renderEvents(events);
+    })
+    .catch(error => {
+      console.error('Fetching error:', error);
+      showError('Failed to load events. Please try again later.');
+    });
+};
+
+// Fetch events with async/await
+const fetchEventsAsync = async () => {
+  showLoading();
+  try {
+    const response = await fetch(MOCK_URL);
+    if (!response.ok) throw new Error('Network response was not OK');
+    const data = await response.json();
+    const events = [...data].map(({ title, body }) => ({
+      title: title.charAt(0).toUpperCase() + title.slice(1),
+      date: new Date(Date.now() + Math.random() * 1e10).toISOString().slice(0, 10),
+      location: "Virtual",
+      category: "Demo",
+      description: body,
+    }));
+    renderEvents(events);
+  } catch (error) {
+    console.error('Async fetching error:', error);
+    showError('Failed to load events. Please try again later.');
+  }
+};
+
+// Run desired fetch version:
+// fetchEventsWithPromises();
+fetchEventsAsync();
